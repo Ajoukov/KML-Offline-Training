@@ -10,7 +10,7 @@ import pickle
 from __global_paths import *
 
 # Load and preprocess the data
-data = pd.read_csv("io_latency.csv", header=None)
+data = pd.read_csv(INP_DIR + "inputs.csv", header=None)
 
 # data = data[~data.apply(lambda row: row.astype(str).str.contains('999999')).any(axis=1)]
 
@@ -101,9 +101,9 @@ targets = data['z-score']
 # metadata = data[['mean', 'std']]
 features = data[cols_features]
 
-# features.to_csv('features_latency_use_N.csv', index=False)
-# metadata.to_csv('metadata_latency_use_N.csv', index=False)
-# targets.to_csv('targets_latency_use_N.csv', index=False)
+# features.to_csv(OUT_DIR + 'features_latency_use_N.csv', index=False)
+# metadata.to_csv(OUT_DIR + 'metadata_latency_use_N.csv', index=False)
+# targets.to_csv(OUT_DIR + 'targets_latency_use_N.csv', index=False)
 
 X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2, random_state=42)
 
@@ -112,11 +112,11 @@ X_test = torch.tensor(np.array(X_test), dtype=torch.float32)
 y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1)
 y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
 
-with open('X_train.pkl', 'wb') as f:
+with open(TMP_DIR + 'X_train.pkl', 'wb') as f:
     pickle.dump(X_train, f)
-with open('X_test.pkl', 'wb') as f:
+with open(TMP_DIR + 'X_test.pkl', 'wb') as f:
     pickle.dump(X_test, f)
-with open('y_train.pkl', 'wb') as f:
+with open(TMP_DIR + 'y_train.pkl', 'wb') as f:
     pickle.dump(y_train, f)
-with open('y_test.pkl', 'wb') as f:
+with open(TMP_DIR + 'y_test.pkl', 'wb') as f:
     pickle.dump(y_test, f)

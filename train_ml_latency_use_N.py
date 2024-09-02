@@ -7,7 +7,6 @@ from __global_paths import *
 
 print(f"Using N={N}, Layers=({int(N*6)}, {int(M)}, {int(M/2)}, {int(M/4)}, {1})")
 
-
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
@@ -26,13 +25,13 @@ class NeuralNetwork(nn.Module):
 
 print("loading files")
 
-with open('X_train.pkl', 'rb') as f:
+with open(TMP_DIR + 'X_train.pkl', 'rb') as f:
     X_train = pickle.load(f)
-with open('X_test.pkl', 'rb') as f:
+with open(TMP_DIR + 'X_test.pkl', 'rb') as f:
     X_test = pickle.load(f)
-with open('y_train.pkl', 'rb') as f:
+with open(TMP_DIR + 'y_train.pkl', 'rb') as f:
     y_train = pickle.load(f)
-with open('y_test.pkl', 'rb') as f:
+with open(TMP_DIR + 'y_test.pkl', 'rb') as f:
     y_test = pickle.load(f)
     
 print("loaded files")
@@ -65,5 +64,5 @@ for epoch in range(1, epochs):
     # print(f'Epoch {epoch}/{epochs}, Current Learning Rate: {current_lr}')
 
 # Save the model
-torch.save(model.state_dict(), "improved_neural_network_latency_use_N.pth")
-print("Model saved to improved_neural_network_latency_use_N.pth")
+torch.save(model.state_dict(), TMP_DIR + "improved_neural_network_latency_use_N.pth")
+print(f"Model saved to {TMP_DIR}improved_neural_network_latency_use_N.pth")

@@ -28,9 +28,9 @@ class NeuralNetwork(nn.Module):
         return x
     
 # Load data from CSV files
-features = pd.read_csv('features_latency_use_N.csv')
+features = pd.read_csv(TMP_DIR + 'features_latency_use_N.csv')
 # metadata = pd.read_csv('metadata_latency_use_N.csv')
-targets = pd.read_csv('targets_latency_use_N.csv')
+targets = pd.read_csv(TMP_DIR + 'targets_latency_use_N.csv')
 
 targets = targets ** 1/3
 
@@ -85,7 +85,7 @@ y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1
 y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
 
 model = NeuralNetwork()
-model.load_state_dict(torch.load("improved_neural_network_latency_use_N.pth"))
+model.load_state_dict(torch.load(TMP_DIR + "improved_neural_network_latency_use_N.pth"))
 
 # mean = M_test['mean'].values.reshape(-1, 1)
 # std = M_test['std'].values.reshape(-1, 1)
@@ -105,7 +105,7 @@ with torch.no_grad():
     # predictions = predictions * std + mean
     # predictions = np.clip(predictions, a_min=min(y_test.numpy())**2 * -1, a_max=max(y_test.numpy())**2)
     predictions = np.clip(predictions, a_min=-10, a_max=10)
-    np.savetxt("predictions_simulate.csv", predictions, delimiter=" ", fmt="%015.6f")
+    np.savetxt(OUT_DIR + "predictions_simulate.csv", predictions, delimiter=" ", fmt="%015.6f")
     # predictions = 2.718 ** predictions
     # predictions[predictions > 1e5] = 1e5
     # predictions = predictions[mask]
@@ -117,7 +117,7 @@ with torch.no_grad():
     
     # latencies_all = torch.tensor(np.array(targets.values), dtype=torch.float32).view(-1, 1).numpy()
     # np.savetxt("latencies_simulate.csv", predictions_all, delimiter=" ")
-    np.savetxt("latencies_simulate.csv", y_test_np, delimiter=" ", fmt="%015.6f")
+    np.savetxt(OUT_DIR + "latencies_simulate.csv", y_test_np, delimiter=" ", fmt="%015.6f")
     
     mse = np.mean((predictions - y_test_np) ** 2)
     rmse = np.sqrt(mse)
@@ -163,7 +163,7 @@ plt.ylabel('Predicted Values')
 plt.title('Predicted vs True Values (with 5th and 95th Percentiles)')
 # plt.ylim(0, N-1)
 plt.grid(True)
-plt.savefig('box_plots_predictions_with_percentiles.png')
+plt.savefig(OUT_DIR + 'box_plots_predictions_with_percentiles.png')
 plt.show()
 
 import matplotlib.pyplot as plt
@@ -181,7 +181,7 @@ plt.ylabel('Predicted Latencies')
 plt.title('True vs Predicted Latencies')
 plt.grid(True)
 
-plt.savefig('true_vs_predicted_latencies.png')
+plt.savefig(OUT_DIR + 'true_vs_predicted_latencies.png')
 plt.show()
 
 # Save summary statistics and outlier information to CSV
@@ -193,9 +193,9 @@ def layers_to_csv(layer, num):
     w_np = layer.cpu().state_dict()['weight'].numpy()
     b_np = layer.cpu().state_dict()['bias'].numpy()
     df = pd.DataFrame(w_np) #convert to a dataframe
-    df.to_csv(index=False, header=False, sep=" ", path_or_buf=f"torch_model_new/linear{num}_w.csv", float_format="%015.6f") #save to file
+    df.to_csv(index=False, header=False, sep=" ", path_or_buf=WTS_DIR + f"linear{num}_w.csv", float_format="%015.6f") #save to file
     df = pd.DataFrame(b_np) #convert to a dataframe
-    df.to_csv(index=False, header=False, sep=" ", path_or_buf=f"torch_model_new/linear{num}_b.csv", float_format="%015.6f")
+    df.to_csv(index=False, header=False, sep=" ", path_or_buf=WTS_DIR + f"linear{num}_b.csv", float_format="%015.6f")
 
 layers_to_csv(model.fc1, 0)
 layers_to_csv(model.fc2, 1)
@@ -204,6 +204,6 @@ layers_to_csv(model.fc4, 3)
 
 print(N * 6)
 
-pd.DataFrame(X_test.numpy().astype(float)).to_csv("torch_model_new/tests/norm_input.csv", index=False, header=False, sep=" ", float_format="%015.6f")
-pd.DataFrame(predictions.astype(float)).to_csv("torch_model_new/tests/predictions.csv", index=False, header=False, sep=" ", float_format="%015.6f")
-pd.DataFrame(y_test_np.astype(float)).to_csv("torch_model_new/tests/actual.csv", index=False, header=False, sep=" ", float_format="%015.6f")
+pd.DataFrame(X_test.numpy().astype(float)).to_csv(TST_DIR + "norm_input.csv", index=False, header=False, sep=" ", float_format="%015.6f")
+pd.DataFrame(predictions.astype(float)).to_csv(TST_DIR + "predictions.csv", index=False, header=False, sep=" ", float_format="%015.6f")
+pd.DataFrame(y_test_np.astype(float)).to_csv(TST_DIR + "actual.csv", index=False, header=False, sep=" ", float_format="%015.6f")
