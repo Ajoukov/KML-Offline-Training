@@ -1,0 +1,129 @@
+import torch
+import torch.nn as nn
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, r2_score
+from scipy import stats
+
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super(NeuralNetwork, self).__init__()
+        self.fc1 = nn.Linear(21, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, 128)
+        self.fc4 = nn.Linear(128, 64)
+        self.fc5 = nn.Linear(64, 32)
+        self.fc6 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = torch.relu(self.fc4(x))
+        x = torch.relu(self.fc5(x))
+        x = self.fc6(x)
+        return x
+
+# Load data from CSV files
+features = pd.read_csv('features.csv')
+targets = pd.read_csv('targets.csv')
+
+# Combine features and targets into one DataFrame for analysis
+data = pd.concat([features, targets], axis=1)
+
+# Summary Statistics
+summary_stats = data.describe()
+print("Summary Statistics:\n", summary_stats)
+
+# Box and Whisker Plots
+plt.figure(figsize=(10, 6))
+data.boxplot()
+plt.title("Box and Whisker Plot of Features and Targets")
+plt.xticks(rotation=90)
+plt.savefig('box_and_whisker_plot.png')
+plt.close()
+
+# Histograms
+data.hist(bins=30, figsize=(15, 10))
+plt.suptitle("Histograms of Features and Targets")
+plt.savefig('histograms.png')
+plt.close()
+
+# Z-Score to identify outliers
+z_scores = stats.zscore(data)
+abs_z_scores = abs(z_scores)
+outliers_z = (abs_z_scores > 3).all(axis=1)
+print("Outliers based on Z-Score:\n", data[outliers_z])
+
+# IQR Method to identify outliers
+Q1 = data.quantile(0.25)
+Q3 = data.quantile(0.75)
+IQR = Q3 - Q1
+
+outliers_iqr = ((data < (Q1 - 1.5 * IQR)) | (data > (Q3 + 1.5 * IQR))).any(axis=1)
+print("Outliers based on IQR:\n", data[outliers_iqr])
+
+# Normalize the features
+# scaler = StandardScaler()
+# features = scaler.fit_transform(features)
+
+X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2, random_state=42)
+
+X_train = torch.tensor(np.array(X_train), dtype=torch.float32)
+X_test = torch.tensor(np.array(X_test), dtype=torch.float32)
+y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1)
+y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
+
+model = NeuralNetwork()
+model.load_state_dict(torch.load("improved_neural_network.pth"))
+
+# Evaluation
+model.eval()
+with torch.no_grad():
+    predictions = model(X_test)
+    predictions = predictions.numpy()
+    predictions = np.clip(predictions, a_min=-0.5, a_max=6.5)
+    predictions = np.clip(predictions, a_min=0, a_max=6)
+    y_test_np = y_test.numpy()
+    mse = np.mean((predictions - y_test_np) ** 2)
+    rmse = np.sqrt(mse)
+    mae = mean_absolute_error(y_test_np, predictions)
+    r2 = r2_score(y_test_np, predictions)
+    print(f'RMSE: {rmse:.4f}')
+    print(f'MAE: {mae:.4f}')
+    print(f'R²: {r2:.4f}')
+
+# Create side-by-side box plots for each true value with 10th and 90th percentiles
+true_values = np.arange(7)
+plt.figure(figsize=(15, 10))
+
+predictions_list = []
+labels = []
+for true_value in true_values:
+    mask = (y_test_np == true_value).flatten()
+    if np.sum(mask) > 0:
+        predictions_list.append(predictions[mask].flatten())
+        labels.append(f'True {true_value}')
+
+# Customizing the box plot to show the 10th and 90th percentiles as whiskers
+box = plt.boxplot(predictions_list, labels=labels, patch_artist=True, whis=[10, 90])
+colors = ['cyan', 'lightblue', 'lightgreen', 'tan', 'lightpink', 'lightgrey', 'lavender']
+
+for patch, color in zip(box['boxes'], colors):
+    patch.set_facecolor(color)
+
+plt.xlabel('True Value')
+plt.ylabel('Predicted Values')
+plt.title('Box Plot of Predicted Values for Each True Value (with 10th and 90th Percentiles)')
+plt.ylim(-0.5, 6.5)
+plt.grid(True)
+plt.savefig('box_plots_predictions_with_percentiles.png')
+plt.show()
+
+# Save summary statistics and outlier information to CSV
+summary_stats.to_csv('summary_statistics.csv')
+data[outliers_z].to_csv('outliers_z_score.csv')
+data[outliers_iqr].to_csv('outliers_iqr.csv')
