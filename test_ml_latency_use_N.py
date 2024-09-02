@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from sklearn.model_selection import train_test_split
@@ -26,25 +27,19 @@ class NeuralNetwork(nn.Module):
         x = torch.relu(self.fc3(x))
         x = self.fc4(x)
         return x
+
+print("loading files")
+
+with open(TMP_DIR + 'X_train.pkl', 'rb') as f:
+    X_train = pickle.load(f)
+with open(TMP_DIR + 'X_test.pkl', 'rb') as f:
+    X_test = pickle.load(f)
+with open(TMP_DIR + 'y_train.pkl', 'rb') as f:
+    y_train = pickle.load(f)
+with open(TMP_DIR + 'y_test.pkl', 'rb') as f:
+    y_test = pickle.load(f)
     
-# Load data from CSV files
-features = pd.read_csv(TMP_DIR + 'features_latency_use_N.csv')
-# metadata = pd.read_csv('metadata_latency_use_N.csv')
-targets = pd.read_csv(TMP_DIR + 'targets_latency_use_N.csv')
-
-targets = targets ** 1/3
-
-# Combine features and targets into one DataFrame for analysis
-# data = pd.concat([features, targets, metadata], axis=1)
-data = pd.concat([features, targets], axis=1)
-
-# Summary Statistics
-summary_stats = data.describe()
-print("Summary Statistics:\n", summary_stats)
-
-# summary_stats = data['latency'].describe()
-summary_stats = data['z-score'].describe()
-print("Summary Statistics:\n", summary_stats)
+print("loaded files")
 
 # Box and Whisker Plots
 # plt.figure(figsize=(10, 6))
@@ -74,15 +69,12 @@ print("Summary Statistics:\n", summary_stats)
 # outliers_iqr = ((data < (Q1 - 1.5 * IQR)) | (data > (Q3 + 1.5 * IQR))).any(axis=1)
 # print("Outliers based on IQR:\n", data[outliers_iqr])
 
-# X_train, X_test, y_train, y_test, M_train, M_test = train_test_split(features, targets, metadata, test_size=0.2, random_state=42)
-X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2, random_state=42)
-
-X_train = torch.tensor(np.array(X_train), dtype=torch.float32)
-X_test = torch.tensor(np.array(X_test), dtype=torch.float32)
+# X_train = torch.tensor(np.array(X_train), dtype=torch.float32)
+# X_test = torch.tensor(np.array(X_test), dtype=torch.float32)
 # M_train = torch.tensor(np.array(M_train), dtype=torch.float32)
 # M_test = torch.tensor(np.array(M_test), dtype=torch.float32)
-y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1)
-y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
+# y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1)
+# y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
 
 model = NeuralNetwork()
 model.load_state_dict(torch.load(TMP_DIR + "improved_neural_network_latency_use_N.pth"))
@@ -107,7 +99,8 @@ with torch.no_grad():
     predictions = np.clip(predictions, a_min=-10, a_max=10)
     np.savetxt(OUT_DIR + "predictions_simulate.csv", predictions, delimiter=" ", fmt="%015.6f")
     # predictions = 2.718 ** predictions
-    # predictions[predictions > 1e5] = 1e5
+    # predictions[predictions > 1] = 1
+    # predictions[predictions < -1] = -1
     # predictions = predictions[mask]
     
     y_test_np = y_test.numpy()

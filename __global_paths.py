@@ -7,3 +7,6 @@ TMP_DIR = "tmp_data/"
 
 WTS_DIR = OUT_DIR + "weights/"
 TST_DIR = OUT_DIR + "tests/"
+
+FAC = 10
+EXP = 1

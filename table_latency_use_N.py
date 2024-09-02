@@ -1,3 +1,5 @@
+from __global_paths import *
+
 import pandas as pd
 import numpy as np
 import torch
@@ -7,7 +9,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import pickle
 
-from __global_paths import *
 
 # Load and preprocess the data
 data = pd.read_csv(INP_DIR + "inputs.csv", header=None)
@@ -58,12 +59,12 @@ data.columns = cols_features + ['latency']
 # data = pd.concat(cols_to_merge, axis=1)
 # data.columns = cols
 
-def upsample(data, field, count):
+def upsample(data, field, count, slope):
     to_merge = []
     targets = data[field].unique()
     mid = (max(targets) + min(targets)) // 2
     for target in targets:
-        cur_count = int(count*(0.7*abs(target-mid) + 0.3))
+        cur_count = int(count*((slope)*abs(target-mid) + (1-slope)))
         cur = resample(data[data[field] == target], replace=True, n_samples=cur_count, random_state=42)
         to_merge.append(cur)
     return pd.concat(to_merge)
@@ -78,18 +79,17 @@ data['std'] = data['latency'].rolling(window=32).std().shift(-16)
 
 data['z-score'] = (data['latency'] - data['mean']) / data['std']
 
-data = data[abs(data['z-score']) < 2.5]
+data = data[abs(data['z-score']) < 1.5]
 data = data.dropna()
 # data = data.head(10000)
 
 print(np.shape(data))
 
-data['z-score'] = ((data['z-score'].abs() * 5) ** 1.5).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
+data['z-score'] = ((data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
 
-print(data.nunique())
+print(f"Number of buckets: {data['z-score'].nunique()}")
 
-# data['z-score'] = (data['z-score'] ** 3).astype(int)
-data = upsample(data, 'z-score', 200)
+data = upsample(data, 'z-score', 2000, 0.7)
 
 print(np.shape(data))
 
