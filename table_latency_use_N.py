@@ -7,8 +7,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import pickle
 
-N = 16
-M=32
+from __global_paths import *
 
 # Load and preprocess the data
 data = pd.read_csv("io_latency.csv", header=None)

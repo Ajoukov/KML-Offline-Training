@@ -8,10 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 from scipy.stats import pearsonr
 
-# from table_latency_use_N import N, M
-
-N=16
-M=32
+from __global_paths import *
 
 print(f"Using N={N}, Layers=({int(N*6)}, {int(M)}, {int(M/2)}, {int(M/4)}, {1})")
 

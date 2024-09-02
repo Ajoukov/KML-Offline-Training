@@ -3,10 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pickle
 
-# from table_latency_use_N import N, M
-
-N=16
-M=32
+from __global_paths import *
 
 print(f"Using N={N}, Layers=({int(N*6)}, {int(M)}, {int(M/2)}, {int(M/4)}, {1})")
 
