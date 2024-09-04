@@ -96,11 +96,9 @@ with torch.no_grad():
     # Convert predictions and y_test_np back from z-score
     # predictions = predictions * std + mean
     # predictions = np.clip(predictions, a_min=min(y_test.numpy())**2 * -1, a_max=max(y_test.numpy())**2)
-    predictions = np.clip(predictions, a_min=-10, a_max=10)
+    # predictions = np.clip(predictions, a_min=-10, a_max=10)
     np.savetxt(OUT_DIR + "predictions_simulate.csv", predictions, delimiter=" ", fmt="%015.6f")
     # predictions = 2.718 ** predictions
-    # predictions[predictions > 1] = 1
-    # predictions[predictions < -1] = -1
     # predictions = predictions[mask]
     
     y_test_np = y_test.numpy()
@@ -164,18 +162,18 @@ import matplotlib.pyplot as plt
 # Assuming predictions and y_test_np have been converted back to true latency values as shown earlier
 
 # Scatter plot of true vs predicted latencies
-plt.figure(figsize=(10, 6))
-plt.scatter(y_test_np, predictions, alpha=0.6, edgecolors='w', linewidth=0.5)
-plt.plot([y_test_np.min(), y_test_np.max()], [y_test_np.min(), y_test_np.max()], 'r--', lw=2)  # Line of perfect prediction
+# plt.figure(figsize=(10, 6))
+# plt.scatter(y_test_np, predictions, alpha=0.6, edgecolors='w', linewidth=0.5)
+# plt.plot([y_test_np.min(), y_test_np.max()], [y_test_np.min(), y_test_np.max()], 'r--', lw=2)  # Line of perfect prediction
 
-# Adding labels and title
-plt.xlabel('True Latencies')
-plt.ylabel('Predicted Latencies')
-plt.title('True vs Predicted Latencies')
-plt.grid(True)
+# # Adding labels and title
+# plt.xlabel('True Latencies')
+# plt.ylabel('Predicted Latencies')
+# plt.title('True vs Predicted Latencies')
+# plt.grid(True)
 
-plt.savefig(OUT_DIR + 'true_vs_predicted_latencies.png')
-plt.show()
+# plt.savefig(OUT_DIR + 'true_vs_predicted_latencies.png')
+# plt.show()
 
 # Save summary statistics and outlier information to CSV
 # summary_stats.to_csv('summary_statistics.csv')

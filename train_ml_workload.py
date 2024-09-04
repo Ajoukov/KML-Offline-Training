@@ -13,7 +13,7 @@ class NeuralNetwork(nn.Module):
         self.fc1 = nn.Linear(int(N*6), int(M))
         self.fc2 = nn.Linear(int(M), int(M/2))
         self.fc3 = nn.Linear(int(M/2), int(M/4))
-        self.fc4 = nn.Linear(int(M/4), 1)
+        self.fc4 = nn.Linear(int(M/4), L)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))

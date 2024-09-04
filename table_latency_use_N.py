@@ -61,11 +61,17 @@ data.columns = cols_features + ['latency']
 
 def upsample(data, field, count, slope):
     to_merge = []
-    targets = data[field].unique()
-    mid = (max(targets) + min(targets)) // 2
-    for target in targets:
-        cur_count = int(count*((slope)*abs(target-mid) + (1-slope)))
-        cur = resample(data[data[field] == target], replace=True, n_samples=cur_count, random_state=42)
+    targets = sorted(data[field].unique())
+    mid = len(targets) // 2
+    for loc, target in enumerate(targets):
+        if loc <= mid:
+            cur_count = count - int(count * (slope * (loc / mid)))
+        else:
+            cur_count = count - int(count * (slope * ((len(targets) - 1 - loc) / mid)))
+        cur_data = data[data[field] == target]
+        if cur_count > len(cur_data):
+            cur_count = len(cur_data)
+        cur = cur_data.sample(n=cur_count, replace=False, random_state=42)
         to_merge.append(cur)
     return pd.concat(to_merge)
 
@@ -79,7 +85,8 @@ data['std'] = data['latency'].rolling(window=32).std().shift(-16)
 
 data['z-score'] = (data['latency'] - data['mean']) / data['std']
 
-data = data[abs(data['z-score']) < 1.5]
+data = data[abs(data['z-score']) < 3]
+# data = data[abs(data['latency']) < 2000]
 data = data.dropna()
 # data = data.head(10000)
 
@@ -87,9 +94,13 @@ print(np.shape(data))
 
 data['z-score'] = ((data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
 
-print(f"Number of buckets: {data['z-score'].nunique()}")
+nunique = data['z-score'].nunique()
 
-data = upsample(data, 'z-score', 2000, 0.7)
+print(f"Number of buckets: {nunique}")
+
+count = int(TARGET_ROWS / nunique * 2) # rough estimate
+
+data = upsample(data, 'z-score', count, 0.7)
 
 print(np.shape(data))
 
@@ -112,11 +123,11 @@ X_test = torch.tensor(np.array(X_test), dtype=torch.float32)
 y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1)
 y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
 
-with open(TMP_DIR + 'X_train.pkl', 'wb') as f:
+with open(TMP_DIR + 'X_train_latency.pkl', 'wb') as f:
     pickle.dump(X_train, f)
-with open(TMP_DIR + 'X_test.pkl', 'wb') as f:
+with open(TMP_DIR + 'X_test_latency.pkl', 'wb') as f:
     pickle.dump(X_test, f)
-with open(TMP_DIR + 'y_train.pkl', 'wb') as f:
+with open(TMP_DIR + 'y_train_latency.pkl', 'wb') as f:
     pickle.dump(y_train, f)
-with open(TMP_DIR + 'y_test.pkl', 'wb') as f:
+with open(TMP_DIR + 'y_test_latency.pkl', 'wb') as f:
     pickle.dump(y_test, f)
