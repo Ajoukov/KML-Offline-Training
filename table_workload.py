@@ -15,6 +15,9 @@ cols_features = []
 
 for i in range(0, N):
     cols_features.append(f'size_prev_{i}')
+    cols_features.append(f'op_prev_{i}')
+    cols_features.append(f'lba_diff_prev_{i}')
+    cols_features.append(f'q_size{i}')
     cols_features.append(f'tag0_prev_{i}')
     cols_features.append(f'tag1_prev_{i}')
     cols_features.append(f'tag2_prev_{i}')
@@ -22,21 +25,39 @@ for i in range(0, N):
     cols_features.append(f'tag4_prev_{i}')
 
 for wl in workloads:
-    df = pd.read_csv(INP_DIR + wl + "_small.csv", header=None)
+    df = pd.read_csv(INP_DIR + wl + ".csv", header=None)
     for other_wl in workloads:
         df[other_wl] = 0
     df[wl] = 1
     data = pd.concat([data, df], ignore_index=True)
 
-print(np.shape(data))
 
 data.columns = cols_features + ['latency'] + workloads
-data[workloads] = 0
 
-data.drop('latency', axis=1)
+# data.drop('latency', axis=1)
 data = data.dropna()
 
-features = data[cols_features]
+
+data['category'] = data[workloads].idxmax(axis=1)
+
+# Separate the data by category
+category_counts = data['category'].value_counts()
+min_category_size = category_counts.min()  # Smallest category size
+
+resampled_data = []
+
+for category in data['category'].unique():
+    category_data = data[data['category'] == category]
+    resampled_category = resample(category_data, replace=True, n_samples=min_category_size * 20, random_state=123)
+    resampled_data.append(resampled_category)
+
+data = pd.concat(resampled_data)
+data = data.drop(columns=['category'])
+
+for wl in workloads:
+    print(f"{wl}: {data[wl].sum()}")
+
+features = data[cols_features + ['latency']]
 targets = data[workloads]
 
 X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2, random_state=42)

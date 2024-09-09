@@ -19,6 +19,8 @@ cols_features = []
 
 for i in range(0, N):
     cols_features.append(f'size_prev_{i}')
+    cols_features.append(f'op_prev_{i}')
+    cols_features.append(f'lba_diff_prev_{i}')
     cols_features.append(f'tag0_prev_{i}')
     cols_features.append(f'tag1_prev_{i}')
     cols_features.append(f'tag2_prev_{i}')
@@ -85,14 +87,14 @@ data['std'] = data['latency'].rolling(window=32).std().shift(-16)
 
 data['z-score'] = (data['latency'] - data['mean']) / data['std']
 
-data = data[abs(data['z-score']) < 3]
+data = data[abs(data['z-score']) < 1.2]
 # data = data[abs(data['latency']) < 2000]
 data = data.dropna()
 # data = data.head(10000)
 
 print(np.shape(data))
 
-data['z-score'] = ((data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
+data['z-score'] = (abs(data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
 
 nunique = data['z-score'].nunique()
 
@@ -100,7 +102,7 @@ print(f"Number of buckets: {nunique}")
 
 count = int(TARGET_ROWS / nunique * 2) # rough estimate
 
-data = upsample(data, 'z-score', count, 0.7)
+data = upsample(data, 'z-score', count, -0.2)
 
 print(np.shape(data))
 
@@ -115,6 +117,10 @@ features = data[cols_features]
 # features.to_csv(OUT_DIR + 'features_latency_use_N.csv', index=False)
 # metadata.to_csv(OUT_DIR + 'metadata_latency_use_N.csv', index=False)
 # targets.to_csv(OUT_DIR + 'targets_latency_use_N.csv', index=False)
+
+# pd.set_option('display.max_columns', None)  # Show all columns
+# pd.set_option('display.width', 1000)        # Set display width to a larger value
+print(data[cols_features[:8]].describe())
 
 X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2, random_state=42)
 
