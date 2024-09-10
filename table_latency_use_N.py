@@ -79,7 +79,7 @@ def upsample(data, field, count, slope):
     return pd.concat(to_merge)
 
 # data['latency'] = np.log(latencies)
-data['latency'] = np.log(data['latency'])
+# data['latency'] = np.log(data['latency'])
 # data['completion_avg'] = np.log(completions)
 # cols.append('completion_avg')
 
@@ -88,7 +88,7 @@ data['std'] = data['latency'].rolling(window=32).std().shift(-16)
 
 data['z-score'] = (data['latency'] - data['mean']) / data['std']
 
-data = data[abs(data['z-score']) < 2.5]
+data = data[abs(data['z-score']) < 2]
 # data = data[abs(data['latency']) < 2000]
 data = data.dropna()
 # data = data.head(10000)
@@ -96,6 +96,10 @@ data = data.dropna()
 print(np.shape(data))
 
 data['z-score'] = (abs(data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
+
+pd.set_option('display.max_rows', 1000)
+print(data[['latency', 'z-score']].head(1000))
+pd.reset_option('display.max_rows')
 
 nunique = data['z-score'].nunique()
 

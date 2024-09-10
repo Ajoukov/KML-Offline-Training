@@ -1,14 +1,6 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import pickle
+### Working:
 
-INP_DIR = "input_data/"
-OUT_DIR = "output_data/"
-TMP_DIR = "tmp_data/"
-WTS_DIR = OUT_DIR + "weights/"
-TST_DIR = OUT_DIR + "tests/"
-
+## __global_paths
 N = 16
 WL_M = 128
 M = 64
@@ -59,3 +51,7 @@ class NeuralNetwork(nn.Module):
         x = torch.relu(self.fc5(x))
         x = self.fc6(x)
         return x
+
+## using inputs_working_path
+
+## 2024-09-10
