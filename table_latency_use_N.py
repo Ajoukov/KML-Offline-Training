@@ -21,6 +21,7 @@ for i in range(0, N):
     cols_features.append(f'size_prev_{i}')
     cols_features.append(f'op_prev_{i}')
     cols_features.append(f'lba_diff_prev_{i}')
+    cols_features.append(f'q_size_{i}')
     cols_features.append(f'tag0_prev_{i}')
     cols_features.append(f'tag1_prev_{i}')
     cols_features.append(f'tag2_prev_{i}')
@@ -73,7 +74,7 @@ def upsample(data, field, count, slope):
         cur_data = data[data[field] == target]
         if cur_count > len(cur_data):
             cur_count = len(cur_data)
-        cur = cur_data.sample(n=cur_count, replace=False, random_state=42)
+        cur = cur_data.sample(n=cur_count, replace=True, random_state=42)
         to_merge.append(cur)
     return pd.concat(to_merge)
 
@@ -87,7 +88,7 @@ data['std'] = data['latency'].rolling(window=32).std().shift(-16)
 
 data['z-score'] = (data['latency'] - data['mean']) / data['std']
 
-data = data[abs(data['z-score']) < 1.2]
+data = data[abs(data['z-score']) < 2.5]
 # data = data[abs(data['latency']) < 2000]
 data = data.dropna()
 # data = data.head(10000)

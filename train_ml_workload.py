@@ -18,7 +18,7 @@ with open(TMP_DIR + 'y_test_wl.pkl', 'rb') as f:
 model = Workload()
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0005)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 scheduler = StepLR(optimizer, step_size=100, gamma=0.90)
 
 # Training the model

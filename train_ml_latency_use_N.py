@@ -24,7 +24,7 @@ model = NeuralNetwork()
 from torch.optim.lr_scheduler import StepLR
 
 criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.005)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = StepLR(optimizer, step_size=100, gamma=0.90)
 
 # Training the model
