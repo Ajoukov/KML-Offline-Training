@@ -12,13 +12,22 @@ TST_DIR = OUT_DIR + "tests/"
 N = 16
 WL_M = 128
 M = 64
+TARGET_ROWS = 100000
 workloads = ["mixgraph", "updaterandom", "readrandom", "readrandomwriterandom", "readwhilewriting", "readreverse", "readseq", "fillseq", "fill100k"]
 L = len(workloads)
-EPOCHS = 1024 * 8
 
-FAC = 100
-EXP = 1
-TARGET_ROWS = 100000
+EPOCHS = 1024 * 16
+
+TAKE_LOG=True
+USE_ZSCORE=False
+
+SHIFT = 64
+FAC = 50
+EXP = 1.5
+ZSCORE_MAX = 3
+
+LATENCY_MAX = 2500
+LATENCY_MIN = 100
 
 print(WL_M/16, L)
 

@@ -83,23 +83,31 @@ def upsample(data, field, count, slope):
 # data['completion_avg'] = np.log(completions)
 # cols.append('completion_avg')
 
-data['mean'] = data['latency'].rolling(window=32).mean().shift(-16)
-data['std'] = data['latency'].rolling(window=32).std().shift(-16)
+data = data[data['latency'] < LATENCY_MAX]
+data = data[data['latency'] > LATENCY_MIN]
 
-data['z-score'] = (data['latency'] - data['mean']) / data['std']
+if (TAKE_LOG):
+    data['latency'] = np.log(data['latency'])
 
-data = data[abs(data['z-score']) < 2]
-# data = data[abs(data['latency']) < 2000]
-data = data.dropna()
-# data = data.head(10000)
+if (USE_ZSCORE):
+    data['mean'] = data['latency'].rolling(window=SHIFT * 2).mean().shift(-SHIFT)
+    data['std'] = data['latency'].rolling(window=SHIFT * 2).std().shift(-SHIFT)
 
-print(np.shape(data))
+    data['z-score'] = (data['latency'] - data['mean']) / data['std']
 
-data['z-score'] = (abs(data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
+    data = data[abs(data['z-score']) < ZSCORE_MAX]
+    # data = data.head(10000)
+    data = data.dropna()
+    print(np.shape(data))
 
-pd.set_option('display.max_rows', 1000)
-print(data[['latency', 'z-score']].head(1000))
-pd.reset_option('display.max_rows')
+    data['z-score'] = (abs(data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
+else:
+    data['z-score'] = data['latency']
+    data = data.dropna()
+    
+# pd.set_option('display.max_rows', 1000)
+# print(data[['latency', 'z-score']].head(1000))
+# pd.reset_option('display.max_rows')
 
 nunique = data['z-score'].nunique()
 
