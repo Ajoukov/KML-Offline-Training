@@ -8,6 +8,8 @@ from sklearn.utils import resample
 import numpy as np
 from sklearn.model_selection import train_test_split
 import pickle
+from scipy.signal import find_peaks
+import seaborn as sns
 
 
 # Load and preprocess the data
@@ -16,8 +18,9 @@ data = pd.read_csv(INP_DIR + "inputs.csv", header=None)
 # data = data[~data.apply(lambda row: row.astype(str).str.contains('999999')).any(axis=1)]
 
 cols_features = []
+data = data.iloc[:, 9 * (DATA_N - N):]
 
-for i in range(0, N):
+for i in range(DATA_N - N, DATA_N):
     cols_features.append(f'size_prev_{i}')
     cols_features.append(f'op_prev_{i}')
     cols_features.append(f'lba_diff_prev_{i}')
@@ -28,119 +31,112 @@ for i in range(0, N):
     cols_features.append(f'tag3_prev_{i}')
     cols_features.append(f'tag4_prev_{i}')
 
-# cols.append('latency')
-
 data.columns = cols_features + ['latency']
 
-# cols_completions = [f'lp{i}' for i in range(16)]
+print(data)
 
-# data.columns = ['sector', 'size', 'op', 'tag0', 'tag1', 'tag2', 'tag3', 'tag4', 'queue', 'latency'] + cols_completions
-# cols = []
-# cols_to_merge = []
+log_lat = np.log2(data['latency']) * FAC
+plt.figure(figsize=(12, 6))
+sns.histplot(log_lat[log_lat < 50], kde=True)
+plt.title('Latency log Distribution')
+plt.xlabel('Latency')
+plt.ylabel('Frequency')
+plt.savefig('output_data/latency_dist.png')
 
-# latencies = data['latency']
-# completions = np.mean(data[cols_completions], axis=1)
+import pandas as pd
+import numpy as np
 
-# for i in range(0, N):
-#     cols_to_merge.append(data['size'].shift(i))
-#     # cols_to_merge.append(data['op'].shift(i))
-#     cols_to_merge.append(data['tag0'].shift(i))
-#     cols_to_merge.append(data['tag1'].shift(i))
-#     cols_to_merge.append(data['tag2'].shift(i))
-#     cols_to_merge.append(data['tag3'].shift(i))
-#     cols_to_merge.append(data['tag4'].shift(i))
-#     # cols_to_merge.append(data['queue'].shift(i))
-#     cols.append(f'size_prev_{i}')
-#     # cols.append(f'op_prev_{i}')
-#     cols.append(f'tag0_prev_{i}')
-#     cols.append(f'tag1_prev_{i}')
-#     cols.append(f'tag2_prev_{i}')
-#     cols.append(f'tag3_prev_{i}')
-#     cols.append(f'tag4_prev_{i}')
-#     # cols.append(f'queue_prev_{i}')
-    
-# data = pd.concat(cols_to_merge, axis=1)
-# data.columns = cols
+def upsample(data, field, count):
+    upsampled_data = []
+    unique_values = np.unique(data[field])
 
-def upsample(data, field, count, slope):
-    to_merge = []
-    targets = sorted(data[field].unique())
-    mid = len(targets) // 2
-    for loc, target in enumerate(targets):
-        if loc <= mid:
-            cur_count = count - int(count * (slope * (loc / mid)))
+    for value in unique_values:
+        bin_data = data[data[field] == value]
+        if len(bin_data) < count:
+            sampled_data = bin_data.sample(n=count, replace=True, random_state=42)
+            numeric_cols = sampled_data.select_dtypes(include=[np.number]).columns
+            for col in numeric_cols:
+                noise = np.random.normal(0, 0.01 * sampled_data[col].std(), size=len(sampled_data))
+                sampled_data[col] += noise
         else:
-            cur_count = count - int(count * (slope * ((len(targets) - 1 - loc) / mid)))
-        cur_data = data[data[field] == target]
-        if cur_count > len(cur_data):
-            cur_count = len(cur_data)
-        cur = cur_data.sample(n=cur_count, replace=True, random_state=42)
-        to_merge.append(cur)
-    return pd.concat(to_merge)
+            sampled_data = bin_data.sample(n=count, replace=False, random_state=42)
+        upsampled_data.append(sampled_data)
 
-# data['latency'] = np.log(latencies)
-# data['latency'] = np.log(data['latency'])
-# data['completion_avg'] = np.log(completions)
-# cols.append('completion_avg')
+    return pd.concat(upsampled_data)
 
-data = data[data['latency'] < LATENCY_MAX]
-data = data[data['latency'] > LATENCY_MIN]
 
 if (TAKE_LOG):
-    data['latency'] = np.log(data['latency'])
+    data['latency'] = np.log2(data['latency']) * FAC
+    data['latency'] = data['latency'].astype(int)
+    data = data[data['latency'] <= LATENCY_MAX]
+    data = data[data['latency'] >= LATENCY_MIN]
+
+if (GROUP):
+    def assign_to_nearest_peak(val, peak_values):
+        return np.abs(peak_values - val).argmin()
+
+    data['latency'] = np.log2(data['latency']) * FAC
+    data = data[data['latency'] <= LATENCY_MAX]
+    data = data[data['latency'] >= LATENCY_MIN]
+    data['latency'] *= 5 / FAC
+    data['latency'] = data['latency'].astype(int)
+    _, counts = np.unique(sorted(data['latency']), return_counts=True)
+    print(len(counts))
+    print(counts)
+    peaks, _ = find_peaks(counts, prominence=100)
+    print(len(peaks))
+    print(peaks)
+    peak_values = np.sort(np.unique(data['latency']))[peaks]
+    print(f"Peak values: {peak_values}")
+    data['latency'] = data['latency'].apply(lambda x: assign_to_nearest_peak(x, peak_values))
+    print(np.unique(data['latency'], return_counts=True))
 
 if (USE_ZSCORE):
-    data['mean'] = data['latency'].rolling(window=SHIFT * 2).mean().shift(-SHIFT)
-    data['std'] = data['latency'].rolling(window=SHIFT * 2).std().shift(-SHIFT)
+    if (GLOBAL_ZSCORE):
+        data['mean'] = data['latency'].mean()
+        data['std'] = data['latency'].std()
+    else:
+        data['mean'] = data['latency'].rolling(window=SHIFT * 2).mean().shift(-SHIFT)
+        data['std'] = data['latency'].rolling(window=SHIFT * 2).std().shift(-SHIFT)
 
     data['z-score'] = (data['latency'] - data['mean']) / data['std']
 
     data = data[abs(data['z-score']) < ZSCORE_MAX]
-    # data = data.head(10000)
     data = data.dropna()
     print(np.shape(data))
 
-    data['z-score'] = (abs(data['z-score'].abs() * FAC) ** EXP).astype(int) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
+    data['z-score'] = abs(data['z-score'].abs() ** EXP) * data['z-score'].apply(lambda x: -1 if x < 0 else 1)
 else:
     data['z-score'] = data['latency']
     data = data.dropna()
-    
-# pd.set_option('display.max_rows', 1000)
-# print(data[['latency', 'z-score']].head(1000))
-# pd.reset_option('display.max_rows')
 
-nunique = data['z-score'].nunique()
+count = int(TARGET_ROWS / 10) # rough estimate
 
-print(f"Number of buckets: {nunique}")
-
-count = int(TARGET_ROWS / nunique * 2) # rough estimate
-
-data = upsample(data, 'z-score', count, -0.2)
-
-print(np.shape(data))
-
-# targets = (data['latency'] - np.mean(data['latency'])) * (data['latency'] - np.mean(data['latency'])) * (data['latency'] - np.mean(data['latency']))
+data = upsample(data, 'z-score', count)
+print(np.unique(data['latency'], return_counts=True))
 
 targets = data['z-score']
-# targets = data['latency']
-
-# metadata = data[['mean', 'std']]
 features = data[cols_features]
-
-# features.to_csv(OUT_DIR + 'features_latency_use_N.csv', index=False)
-# metadata.to_csv(OUT_DIR + 'metadata_latency_use_N.csv', index=False)
-# targets.to_csv(OUT_DIR + 'targets_latency_use_N.csv', index=False)
-
-# pd.set_option('display.max_columns', None)  # Show all columns
-# pd.set_option('display.width', 1000)        # Set display width to a larger value
-print(data[cols_features[:8]].describe())
 
 X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2, random_state=42)
 
 X_train = torch.tensor(np.array(X_train), dtype=torch.float32)
 X_test = torch.tensor(np.array(X_test), dtype=torch.float32)
-y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1)
-y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
+if USE_BUCKETS:
+    y_train = torch.tensor(np.array(y_train.values), dtype=torch.long).view(-1)
+    y_test = torch.tensor(np.array(y_test.values), dtype=torch.long).view(-1)
+else:
+    y_train = torch.tensor(np.array(y_train.values), dtype=torch.float32).view(-1, 1)
+    y_test = torch.tensor(np.array(y_test.values), dtype=torch.float32).view(-1, 1)
+    
+print(np.shape(y_test))
+
+plt.figure(figsize=(12, 6))
+sns.histplot(y_test, bins=100, kde=True)
+plt.title('Raw z-score Distribution')
+plt.xlabel('z-score')
+plt.ylabel('Frequency')
+plt.savefig('output_data/z-score_distr.png')
 
 with open(TMP_DIR + 'X_train_latency.pkl', 'wb') as f:
     pickle.dump(X_train, f)

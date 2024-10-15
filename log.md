@@ -54,4 +54,6 @@ class NeuralNetwork(nn.Module):
 
 ## using inputs_working_path
 
+## latencies are not converted to log latencies
+
 ## 2024-09-10

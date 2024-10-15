@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
+import pickle
+
 # # Define latency buckets with finer granularity (powers of 2^0.5)
 # def latency_to_bucket(latency):
 #     return min(int(np.log2(latency) * 2), 30)  # 30 is the max bucket index for latencies up to 32768 us with finer granularity
